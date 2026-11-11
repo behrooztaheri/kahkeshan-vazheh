@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سیب‌گیر</title>
+<style>
+  body{margin:0;background:#2a1a6e;color:#fff;font-family:Tahoma,sans-serif;text-align:center}
+  h1{margin:12px 0 4px;font-size:26px}
+  p{margin:4px 0 10px}
+  canvas{background:linear-gradient(#a8e6ff,#e8fbff);border-radius:16px;max-width:96vw}
+  button{font:inherit;font-size:18px;padding:8px 22px;margin:10px;border:0;border-radius:12px;background:#ffc93c;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>سیب‌گیر</h1>
+<p>با کلیدهای چپ و راست سبد را حرکت بده. <b id="s">امتیاز: ۰</b> | <b id="l">جان: ۳</b></p>
+<canvas id="c" width="640" height="400"></canvas><br>
+<button id="b">شروع بازی</button>
+<script>
+const cv=document.getElementById('c'),x=cv.getContext('2d');
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+let box,apples,score,lives,keys={},run=false,t=0;
+function reset(){box=270;apples=[];score=0;lives=3;t=0;show()}
+function show(){s.textContent='امتیاز: '+fa(score);l.textContent='جان: '+fa(lives)}
+const s=document.getElementById('s'),l=document.getElementById('l');
+addEventListener('keydown',e=>keys[e.key]=true);
+addEventListener('keyup',e=>keys[e.key]=false);
+cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect();box=(e.clientX-r.left)*(640/r.width)-50});
+function draw(){
+  x.clearRect(0,0,640,400);
+  x.fillStyle='#7bd88f';x.fillRect(0,360,640,40);
+  for(const a of apples){x.fillStyle='#e5484d';x.beginPath();x.arc(a.x,a.y,16,0,7);x.fill();x.fillStyle='#23a047';x.fillRect(a.x-2,a.y-22,5,9)}
+  x.fillStyle='#9a5b2e';x.beginPath();x.roundRect(box,335,100,34,10);x.fill();
+  if(!run){x.fillStyle='#241a52';x.font='bold 30px Tahoma';x.textAlign='center';x.fillText(lives<=0?'بازی تمام شد!':'آماده‌ای؟',320,190)}
+}
+function step(){
+  if(run){
+    t++;
+    if(keys.ArrowLeft)box-=8; if(keys.ArrowRight)box+=8;
+    box=Math.max(0,Math.min(540,box));
+    if(t%45===0)apples.push({x:30+Math.random()*580,y:-20,v:2.5+score*.15});
+    for(const a of apples)a.y+=a.v;
+    apples=apples.filter(a=>{
+      if(a.y>325&&a.y<365&&a.x>box-10&&a.x<box+110){score++;show();return false}
+      if(a.y>400){lives--;show();if(lives<=0)run=false;return false}
+      return true});
+  }
+  draw();requestAnimationFrame(step);
+}
+document.getElementById('b').onclick=()=>{reset();run=true};
+reset();step();
+</script>
+</body>
+</html>

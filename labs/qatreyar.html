@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>قطره‌یار</title>
+<style>*{box-sizing:border-box}
+body{margin:0;background:#eef2ff;color:#241a52;font-family:Tahoma,sans-serif}
+header{background:#2a1a6e;color:#fff;padding:12px 18px}
+header h1{margin:0;font-size:24px}header p{margin:3px 0 0;font-size:14px;opacity:.9}
+main{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;padding:14px;max-width:1040px;margin:auto}
+.panel{background:#fff;border-radius:14px;padding:12px;box-shadow:0 2px 8px #0002}
+h2{font-size:16px;margin:0 0 8px}
+#chat{height:300px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:4px}
+.msg{padding:9px 12px;border-radius:14px;max-width:88%;line-height:1.7;font-size:15px}
+.me{align-self:flex-start;background:#e6dcff}.bot{align-self:flex-end;background:#e6faee}
+.bar{display:flex;gap:8px;margin-top:10px}
+input,textarea{flex:1;font:inherit;padding:9px;border:1px solid #99a;border-radius:10px}
+textarea{width:100%;height:112px;resize:vertical;margin-bottom:10px;font-size:14px;line-height:1.7}
+button{font:inherit;padding:9px 16px;border:0;border-radius:10px;background:#6c3fe0;color:#fff;cursor:pointer}
+.step{font-size:14px;padding:6px 8px;background:#f4f2fb;border-radius:8px;margin-bottom:5px;line-height:1.6}
+.step b{color:#6c3fe0}small{display:block;text-align:center;color:#556;padding:0 12px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chips button{background:#efebff;color:#2a1a6e;padding:5px 10px;font-size:13px}
+@media(max-width:760px){main{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>قطره‌یار</h1><p>مینی‌عامل صرفه‌جویی آب: می‌پرسد، حساب می‌کند و یک پیشنهاد می‌دهد.</p></header>
+<main>
+<section class="panel"><h2>گفتگو</h2><div id="chat"></div>
+<div class="bar"><input id="q" placeholder="مثلاً: دوش ۱۲ دقیقه، مسواک ۳ دقیقه، ظرف ۱۵ دقیقه"><button id="go">بفرست</button></div>
+<div class="chips"><button data-q="دوش ۱۲ دقیقه، مسواک ۳ دقیقه، ظرف ۱۵ دقیقه">نمونه کامل</button><button data-q="دوش ۱۰ دقیقه">نمونه ناقص</button></div></section>
+<section class="panel"><h2>مغز عامل چه کرد؟</h2><div id="trace"></div></section>
+</main>
+<small>نسخه آموزشی بدون اینترنت و بدون مدل زبانی. عددها تخمینی‌اند (۸ لیتر در دقیقه) و داده‌ای فرستاده نمی‌شود.</small>
+<script>// Shared mini-agent shell: chat, visible trace, and helpers. Runs fully offline.
+const fa = (n) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const norm = (t) => t.replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/‌/g, ' ');
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+function bubble(cls, html) { const d = document.createElement('div'); d.className = 'msg ' + cls; d.innerHTML = html; $('chat').appendChild(d); $('chat').scrollTop = 1e6; }
+function trace(step, text) { const d = document.createElement('div'); d.className = 'step'; d.innerHTML = '<b>' + step + '</b> ' + esc(text); $('trace').appendChild(d); }
+// Safety rules shared by both agents; they run before anything else.
+function guard(t) {
+  if (/رمز|شماره کارت|کد ملی|شماره تلفن|شماره بابا|شماره مامان|موبایل|آدرس خونه|آدرس خانه|نشانی خانه|نشانی خونه/.test(t)) return 'لطفاً رمز، شماره تلفن یا نشانی را اینجا ننویس. برای کار من لازم نیست و بهتر است خصوصی بماند.';
+  if (/فراموش کن|نادیده بگیر|دستورها?ت|دستور سیستم/.test(t)) return 'نمی‌توانم دستورهایم را کنار بگذارم. اما خوشحال می‌شوم در کار خودم کمکت کنم.';
+  return null;
+}
+function wire(run) {
+  const send = () => { const q = $('q').value.trim(); if (!q) return; $('q').value = ''; $('trace').innerHTML = ''; bubble('me', esc(q)); const t = norm(q); trace('دریافت:', 'پیام خوانده شد.'); const g = guard(t); if (g) { trace('نگهبان:', 'مرز ایمنی فعال شد؛ هیچ ابزاری اجرا نشد.'); bubble('bot', g); return; } trace('نگهبان:', 'پیام امن است.'); bubble('bot', run(t)); };
+  $('go').onclick = send; $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+}
+</script>
+<script>
+const RATE = 8, ITEMS = { دوش: 'دوش', مسواک: 'مسواک', ظرف: 'ظرف' };
+const TIPS = { دوش: 'دوش را ۲ دقیقه کوتاه‌تر کن.', مسواک: 'هنگام مسواک شیر را ببند.', ظرف: 'هنگام کف زدن ظرف‌ها شیر را ببند.' };
+const memory = {};                                   // short memory of this conversation
+const tools = {
+  read(t) { const r = {}; for (const k of Object.keys(ITEMS)) { const m = t.match(new RegExp(k + '[^0-9]{0,12}(\\d+)')) ; if (m) r[k] = +m[1]; } return r; },
+  calc(v) { const o = {}; let total = 0; for (const k in v) { o[k] = v[k] * RATE; total += o[k]; } return { each: o, total }; },
+  tip(each) { const top = Object.keys(each).sort((a, b) => each[b] - each[a])[0]; return { top, text: TIPS[top] }; },
+};
+function run(t) {
+  if (!/دوش|مسواک|ظرف|آب|مصرف/.test(t) && !/سلام/.test(t)) { trace('تصمیم:', 'موضوع پیام خارج از هدف من است.'); return 'من فقط در صرفه‌جویی آب کمک می‌کنم. مدت دوش، مسواک و شستن ظرف را بگو تا حساب کنم.'; }
+  if (/شهر|کشور|ایران|تهران/.test(t)) { trace('تصمیم:', 'داده لازم در ابزارها نیست.'); return 'این را نمی‌دانم. من فقط مصرف خانه تو را تخمین می‌زنم.'; }
+  const found = tools.read(t); trace('ابزار خواندن:', JSON.stringify(found)); Object.assign(memory, found);
+  const miss = Object.keys(ITEMS).filter((k) => memory[k] === undefined);
+  if (miss.length) { trace('تصمیم:', 'اطلاعات ناقص است؛ باید بپرسم.'); return 'چند دقیقه برای ' + miss.join(' و ') + '؟'; }
+  const c = tools.calc(memory); trace('ابزار حساب:', JSON.stringify(c.each) + ' مجموع ' + c.total);
+  const p = tools.tip(c.each); trace('ابزار پیشنهاد:', p.top); trace('بررسی:', 'جمع بخش‌ها با مجموع برابر است.');
+  return `مصرف تخمینی تو حدود <b>${fa(c.total)} لیتر</b> در روز است: دوش ${fa(c.each.دوش)}، مسواک ${fa(c.each.مسواک)} و ظرف ${fa(c.each.ظرف)} لیتر. بیشترین مصرف مال <b>${p.top}</b> است. پیشنهاد من: ${p.text}`;
+}
+wire(run);
+document.querySelectorAll('.chips button').forEach((b) => (b.onclick = () => { $('q').value = b.dataset.q; $('go').click(); }));
+bubble('bot', 'سلام! من قطره‌یار هستم. مدت دوش، مسواک و شستن ظرف را بگو.');
+</script></body></html>
